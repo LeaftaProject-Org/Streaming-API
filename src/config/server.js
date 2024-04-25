@@ -19,10 +19,8 @@ function createApp() {
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
 
-    app.get('/api', (req, res) => {
-        res.send('Welcome on LeaftaStreaming API')
-    })
-    
+    app.use('/api', require('../routes/routes'));
+
     app.listen(process.env.API_PORT, () => {
         console.log('Server running with success!');
         console.log(`API url: ${process.env.API_DOMAIN}:${process.env.API_PORT}/api`);
