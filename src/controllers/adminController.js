@@ -78,7 +78,7 @@ exports.uploadMedia = async (req, res) => {
  * @param {Object} res - The response object.
  * @return {Promise<Object>} A promise that resolves to a JSON object with a message indicating the status of the torrent download. If the name is not provided in the query, a 400 error with a message "All fields are required" is returned. If the media with the given name is not found, a 400 error with a message "Media not found" is returned. If there is an error during the download process, a 500 error with a message containing the error message is returned.
  */
-exports.downloadTorrent = async (req, res) => {
+exports.startDownloadTorrent = async (req, res) => {
   const { name } = req.query;
 
   if (!name) {

@@ -23,7 +23,7 @@ const upload = multer({
 ]);
 
 router.post('/upload/media', checkToken, checkAdmin, upload, adminController.uploadMedia);
-router.post('/download/torrent/start', checkToken, checkAdmin, adminController.downloadTorrent);
+router.post('/download/torrent/start', checkToken, checkAdmin, adminController.startDownloadTorrent);
 router.get('/download/torrent/all/status', checkToken, checkAdmin, adminController.getAllTorrentStatus);
 
 module.exports = router;
