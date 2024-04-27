@@ -35,10 +35,13 @@ const MediaSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    pathMedia: {
+        type: String,
+    },
     downloadStatus: {
         type: String,
         required: true,
-        enum: ['NOT DOWNLOADED', 'IN PROGRESS', 'DOWNLOADED'],
+        enum: ['NOT DOWNLOADED', 'IN PROGRESS', 'DOWNLOADED', 'PAUSED'],
         default: 'NOT DOWNLOADED'
     },
     infoHash: {

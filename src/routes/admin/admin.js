@@ -24,6 +24,9 @@ const upload = multer({
 
 router.post('/upload/media', checkToken, checkAdmin, upload, adminController.uploadMedia);
 router.post('/download/torrent/start', checkToken, checkAdmin, adminController.startDownloadTorrent);
+router.post('/download/torrent/pause', checkToken, checkAdmin, adminController.pauseDownloadTorrent);
+router.post('/download/torrent/resume', checkToken, checkAdmin, adminController.resumeDownloadTorrent);
+router.post('/download/torrent/stop', checkToken, checkAdmin, adminController.stopDownloadTorrent);
 router.get('/download/torrent/all/status', checkToken, checkAdmin, adminController.getAllTorrentStatus);
 
 module.exports = router;

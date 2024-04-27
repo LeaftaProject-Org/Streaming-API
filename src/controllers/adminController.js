@@ -1,5 +1,6 @@
 const MediaModel = require("../models/media");
 const fs = require("fs");
+const fsExtra = require('fs-extra');
 
 const importWebTorrent = async () => {
   const webTorrentModule = await import("webtorrent");
@@ -100,38 +101,176 @@ exports.startDownloadTorrent = async (req, res) => {
 
     let mediaPath;
     switch (media.type) {
-      case "MOVIE": mediaPath = "movies"; break;
-      case "TV SHOW": mediaPath = "tvshows"; break;
-      case "ANIME": mediaPath = "animes"; break;
-      case "SERIES": mediaPath = "series"; break;
-      default: return res.status(400).json({ message: "Invalid media type" });
+      case "MOVIE":
+        mediaPath = "movies";
+        break;
+      case "TV SHOW":
+        mediaPath = "tvshows";
+        break;
+      case "ANIME":
+        mediaPath = "animes";
+        break;
+      case "SERIES":
+        mediaPath = "series";
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid media type" });
     }
 
     const pathTorrent = media.pathTorrent;
-    media.downloadStatus = "IN PROGRESS";
-    await media.save();
 
-    client.add(pathTorrent, { path: `./src/uploads/medias/${mediaPath}` }, (torrent) => {
-      media.infoHash = torrent.infoHash;
-      media.save();
+    client.add(
+      pathTorrent,
+      { path: `./src/uploads/medias/${mediaPath}` },
+      (torrent) => {
+        media.downloadStatus = "IN PROGRESS";
+        media.infoHash = torrent.infoHash;
+        media.pathMedia = torrent.path + "/" + torrent.name;
+        media.save();
 
-      torrent.on("done", async () => {
-        media.downloadStatus = "DOWNLOADED";
-        await media.save();
-      });
+        torrent.on("done", async () => {
+          media.downloadStatus = "DOWNLOADED";
+          await media.save();
+        });
 
-      torrent.on("error", async (err) => {
-        console.error("Error downloading torrent:", err);
-        media.downloadStatus = "ERROR";
-        await media.save();
-      });
-    });
+        torrent.on("error", async (err) => {
+          console.error("Error downloading torrent:", err);
+          media.downloadStatus = "ERROR";
+          await media.save();
+        });
+      }
+    );
 
     res.status(200).json({ message: "Torrent download started" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * Pauses downloading a torrent with the given name.
+ *
+ * @param {Object} req - The request object containing the query parameters.
+ * @param {Object} res - The response object to send back the result of the download operation.
+ * @return {Promise<Object>} A promise that resolves to a JSON object indicating the status of the torrent download operation.
+ */
+exports.pauseDownloadTorrent = async (req, res) => {
+  const { name } = req.query;
+  if (!name) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    const media = await MediaModel.findOne({ name });
+    if (!media) {
+      return res.status(400).json({ message: "Media not found" });
+    }
+
+    if (media.downloadStatus === "IN PROGRESS") {
+      const torrent = await client.get(media.infoHash);
+      if (torrent) {
+        torrent.pause();
+        media.downloadStatus = "PAUSED";
+        await media.save();
+      } else {
+        return res.status(400).json({ message: "Torrent not found" });
+      }
+    } else if (media.downloadStatus === "PAUSED") {
+      return res.status(400).json({ message: "Torrent already paused" });
+    }
+
+    res.status(200).json({ message: "Torrent download paused" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Resumes downloading a torrent with the given name.
+ *
+ * @param {Object} req - The request object containing the query parameters.
+ * @param {Object} res - The response object to send back the result of the download operation.
+ * @return {Promise<Object>} A promise that resolves to a JSON object with a message indicating the status of the torrent download. If the name is not provided in the query, a 400 error with a message "All fields are required" is returned. If the media with the given name is not found, a 400 error with a message "Media not found" is returned. If the torrent is not paused, a 400 error with a message "Torrent not paused" is returned. If there is an error during the download process, a 500 error with a message containing the error message is returned.
+ */
+exports.resumeDownloadTorrent = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    const media = await MediaModel.findOne({ name });
+
+    if (!media) {
+      return res.status(400).json({ message: "Media not found" });
+    }
+
+    if (media.downloadStatus === "PAUSED") {
+      const torrent = await client.get(media.infoHash);
+
+      if (torrent) {
+        torrent.resume();
+        media.downloadStatus = "IN PROGRESS";
+        await media.save();
+      } else {
+        return res.status(400).json({ message: "Torrent not found" });
+      }
+    } else {
+      return res.status(400).json({ message: "Torrent not paused" });
+    }
+
+    res.status(200).json({ message: "Torrent download resumed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Downloads a torrent with the given name and stops the download process if it's in progress.
+ *
+ * @param {Object} req - The request object containing the query parameters.
+ * @param {Object} res - The response object to send back the result of the download operation.
+ * @return {Promise<Object>} A promise that resolves to a JSON object indicating the status of the torrent download operation.
+ */
+exports.stopDownloadTorrent = async (req, res) => {
+  const { name } = req.query;
+  if (!name) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    const media = await MediaModel.findOne({ name });
+    if (!media) {
+      return res.status(400).json({ message: "Media not found" });
+    }
+
+    const torrent = client.get(media.infoHash);
+    if (!torrent) {
+      return res.status(400).json(`No torrent with id ${media.infoHash}`);
+    }
+
+    if (media.downloadStatus === "IN PROGRESS") {
+      client.remove(media.infoHash);
+
+      media.downloadStatus = "NOT DOWNLOADED";
+      await media.save();
+
+      fsExtra.remove(media.pathMedia, err => {
+        if (err) {
+          console.log(err);
+        }
+      });
+      
+      res.status(200).json({ message: "Torrent download stopped" });
+    } else if (media.downloadStatus === "DOWNLOADED") {
+      return res.status(400).json({ message: "Torrent already downloaded" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 /**
  * Retrieves a list of torrent downloads in progress and their corresponding information.
@@ -161,11 +300,16 @@ exports.getAllTorrentStatus = async (req, res) => {
       return res.status(400).json({ message: "No torrents in progress found" });
     }
 
-    const torrentsDB = await MediaModel.find({ downloadStatus: "IN PROGRESS" });
+    const torrentsDB = await MediaModel.find({
+      downloadStatus: {
+        $in: ["IN PROGRESS", "PAUSED"],
+      },
+    });
     const torrentsInfos = [];
 
     for (const torrent of torrents) {
-      const { infoHash, progress, name, downloaded, uploaded, timeRemaining } = torrent;
+      const { infoHash, progress, name, downloaded, uploaded, timeRemaining } =
+        torrent;
 
       const matchingTorrentDB = torrentsDB.find(
         (torrentDB) => torrentDB.infoHash === infoHash
@@ -183,7 +327,9 @@ exports.getAllTorrentStatus = async (req, res) => {
           const hours = Math.floor(minutes / 60);
 
           if (hours > 0) {
-            formattedRemainingTime = `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+            formattedRemainingTime = `${hours}h ${minutes % 60}m ${
+              seconds % 60
+            }s`;
           } else if (minutes > 0) {
             formattedRemainingTime = `${minutes}m ${seconds % 60}s`;
           } else {
@@ -202,10 +348,8 @@ exports.getAllTorrentStatus = async (req, res) => {
           downloaded: (downloaded / 1024 / 1024).toFixed(2) + " MB",
           uploaded: (uploaded / 1024 / 1024).toFixed(2) + " MB",
           poster: `data:image/jpeg;base64,${image}`,
-
         });
       }
-
     }
 
     res.status(200).json(torrentsInfos);
