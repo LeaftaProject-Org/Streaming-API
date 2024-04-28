@@ -26,6 +26,8 @@ const upload = multer({
 
 /*User */
 router.get('/data/user/fetch/all', checkToken, checkAdmin, userController.getAllUser);
+router.get  ('/data/user/fetch', checkToken, checkAdmin, userController.getUser);
+router.post('/data/user/update', checkToken, checkAdmin, userController.editUser);
 
 /*Media */
 router.post('/upload/media', checkToken, checkAdmin, upload, mediaController.uploadMedia);
