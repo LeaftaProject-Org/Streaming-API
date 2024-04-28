@@ -1,4 +1,4 @@
-const MediaModel = require("../models/media");
+const MediaModel = require("../../models/media");
 const fs = require("fs");
 const fsExtra = require('fs-extra');
 
@@ -18,59 +18,6 @@ initializeWebTorrent().then((c) => {
   client = c;
 });
 
-/**
- * Uploads media to the server.
- *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @return {Promise<Object>} A promise that resolves to a JSON object with a message indicating the status of the media upload. If no files are uploaded, a 400 error with a message "No files uploaded" is returned. If any required fields are missing, a 400 error with a message "All fields are required" is returned. If the media already exists, a 400 error with a message "Media already exists" is returned. If there is an error during the upload process, a 500 error with a message containing the error message is returned.
- */
-exports.uploadMedia = async (req, res) => {
-  const files = req.files;
-
-  if (!files) {
-    return res.status(400).json({ message: "No files uploaded" });
-  }
-
-  const { name, type, category, addedDate, releaseDate } = req.body;
-
-  if (!name || !type || !category || !releaseDate) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  try {
-    const added = await MediaModel.findOne({ name });
-
-    if (added) {
-      fs.unlink(req.files["torrent"][0].path, (err) => {
-        if (err) {
-          console.error(err);
-        }
-      });
-      fs.unlink(req.files["mediaPoster"][0].path, (err) => {
-        if (err) {
-          console.error(err);
-        }
-      });
-      return res.status(400).json({ message: "Media already exists" });
-    }
-
-    const media = new MediaModel({
-      name,
-      type,
-      category,
-      pathTorrent: req.files["torrent"][0].path,
-      pathPoster: req.files["mediaPoster"][0].path,
-      addedDate,
-      releaseDate,
-    });
-    await media.save();
-
-    res.status(200).json({ message: "Media added successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
 
 /**
  * Downloads a torrent with the given name.
@@ -79,7 +26,7 @@ exports.uploadMedia = async (req, res) => {
  * @param {Object} res - The response object.
  * @return {Promise<Object>} A promise that resolves to a JSON object with a message indicating the status of the torrent download. If the name is not provided in the query, a 400 error with a message "All fields are required" is returned. If the media with the given name is not found, a 400 error with a message "Media not found" is returned. If there is an error during the download process, a 500 error with a message containing the error message is returned.
  */
-exports.startDownloadTorrent = async (req, res) => {
+exports.startDownloadTorrent = async(req, res) => {
   const { name } = req.query;
 
   if (!name) {
@@ -97,6 +44,8 @@ exports.startDownloadTorrent = async (req, res) => {
       return res.status(400).json({ message: "Torrent already downloaded" });
     } else if (media.downloadStatus === "IN PROGRESS") {
       return res.status(400).json({ message: "Torrent already in progress" });
+    } else if (media.downloadStatus === "PAUSED") {
+      return res.status(400).json({ message: "Torrent already paused" });
     }
 
     let mediaPath;
@@ -154,7 +103,7 @@ exports.startDownloadTorrent = async (req, res) => {
  * @param {Object} res - The response object to send back the result of the download operation.
  * @return {Promise<Object>} A promise that resolves to a JSON object indicating the status of the torrent download operation.
  */
-exports.pauseDownloadTorrent = async (req, res) => {
+exports.pauseDownloadTorrent = async(req, res) => {
   const { name } = req.query;
   if (!name) {
     return res.status(400).json({ message: "All fields are required" });
@@ -169,9 +118,10 @@ exports.pauseDownloadTorrent = async (req, res) => {
     if (media.downloadStatus === "IN PROGRESS") {
       const torrent = await client.get(media.infoHash);
       if (torrent) {
-        torrent.pause();
+        torrent.deselect(0, torrent.pieces.length-1)
         media.downloadStatus = "PAUSED";
         await media.save();
+        res.status(200).json({ message: "Torrent download paused" });
       } else {
         return res.status(400).json({ message: "Torrent not found" });
       }
@@ -179,7 +129,7 @@ exports.pauseDownloadTorrent = async (req, res) => {
       return res.status(400).json({ message: "Torrent already paused" });
     }
 
-    res.status(200).json({ message: "Torrent download paused" });
+  
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -192,7 +142,7 @@ exports.pauseDownloadTorrent = async (req, res) => {
  * @param {Object} res - The response object to send back the result of the download operation.
  * @return {Promise<Object>} A promise that resolves to a JSON object with a message indicating the status of the torrent download. If the name is not provided in the query, a 400 error with a message "All fields are required" is returned. If the media with the given name is not found, a 400 error with a message "Media not found" is returned. If the torrent is not paused, a 400 error with a message "Torrent not paused" is returned. If there is an error during the download process, a 500 error with a message containing the error message is returned.
  */
-exports.resumeDownloadTorrent = async (req, res) => {
+exports.resumeDownloadTorrent = async(req, res) => {
   const { name } = req.query;
 
   if (!name) {
@@ -210,7 +160,7 @@ exports.resumeDownloadTorrent = async (req, res) => {
       const torrent = await client.get(media.infoHash);
 
       if (torrent) {
-        torrent.resume();
+        torrent.select(0, torrent.pieces.length-1)
         media.downloadStatus = "IN PROGRESS";
         await media.save();
       } else {
@@ -233,36 +183,25 @@ exports.resumeDownloadTorrent = async (req, res) => {
  * @param {Object} res - The response object to send back the result of the download operation.
  * @return {Promise<Object>} A promise that resolves to a JSON object indicating the status of the torrent download operation.
  */
-exports.stopDownloadTorrent = async (req, res) => {
+exports.stopDownloadTorrent = async(req, res) => {
   const { name } = req.query;
   if (!name) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    const media = await MediaModel.findOne({ name });
+    const media = await MediaModel.findOne({ name })
     if (!media) {
       return res.status(400).json({ message: "Media not found" });
     }
 
-    const torrent = client.get(media.infoHash);
-    if (!torrent) {
-      return res.status(400).json(`No torrent with id ${media.infoHash}`);
-    }
-
     if (media.downloadStatus === "IN PROGRESS") {
-      client.remove(media.infoHash);
-
-      media.downloadStatus = "NOT DOWNLOADED";
-      await media.save();
-
-      fsExtra.remove(media.pathMedia, err => {
-        if (err) {
-          console.log(err);
-        }
+      client.remove(media.infoHash, () => {
+        media.downloadStatus = "NOT DOWNLOADED";
+        media.save();
+        fsExtra.remove(media.pathMedia);
+        res.status(200).json({ message: "Torrent download stopped" });
       });
-      
-      res.status(200).json({ message: "Torrent download stopped" });
     } else if (media.downloadStatus === "DOWNLOADED") {
       return res.status(400).json({ message: "Torrent already downloaded" });
     }

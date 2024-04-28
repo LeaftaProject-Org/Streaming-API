@@ -2,25 +2,13 @@ const bcrypt = require("bcrypt");
 const UserModel = require("../models/user");
 const jwt = require("jsonwebtoken");
 
+
 /**
- * @api {post} /auth/sign-up signup
- * @apiName signup
- * @apiGroup Auth
+ * Sign up a new user with the provided email, username, password, and repeatPassword.
  *
- * @apiParam {String} email user email
- * @apiParam {String} username user username
- * @apiParam {String} password user password
- * @apiParam {String} repeatPassword repeated password
- *
- * @apiSuccess {String} message success message
- * @apiSuccess {String} token JWT token
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     {
- *       "message": "User signed up successfully",
- *       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkNTQxZGNjZjViZDY1MWQxMmRjNzRlMiIsInVzZXJuYW1lIjoiYWRtaW4ifQ.zS3__P2WkR5j37_n78_rKrVQbvqr6qwIqZZ_5Ta-yPs"
- *     }
+ * @param {Object} req - The request object containing the user's email, username, password, and repeatPassword.
+ * @param {Object} res - The response object used to send the sign-up result.
+ * @return {Promise<void>} - A promise that resolves when the sign-up is complete.
  */
 exports.signup = async (req, res) => {
   const { email, username, password, repeatPassword } = req.body;
@@ -66,23 +54,13 @@ exports.signup = async (req, res) => {
   }
 };
 
+
 /**
- * @api {post} /auth/sign-in
- * @apiName signin
- * @apiGroup Auth
+ * Sign in a user with the provided email and password.
  *
- * @apiParam {String} email user email
- * @apiParam {String} password user password
- *
- * @apiSuccess {String} message success message
- * @apiSuccess {String} token JWT token
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     {
- *       "message": "User logged in successfully",
- *       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkNTQxZGNjZjViZDY1MWQxMmRjNzRlMiIsInVzZXJuYW1lIjoiYWRtaW4ifQ.zS3__P2WkR5j37_n78_rKrVQbvqr6qwIqZZ_5Ta-yPs"
- *     }
+ * @param {Object} req - The request object containing the user's email and password.
+ * @param {Object} res - The response object used to send the sign-in result.
+ * @return {Promise<void>} - A promise that resolves when the sign-in is complete.
  */
 exports.signin = async (req, res) => {
   const { email, password } = req.body;

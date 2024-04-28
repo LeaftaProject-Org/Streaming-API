@@ -1,5 +1,7 @@
 const router = require('express').Router();
-const adminController = require('../../controllers/adminController')
+const userController = require('../../controllers/admin/user');
+const mediaController = require('../../controllers/admin/media');
+const torrentController = require('../../controllers/admin/torrent');
 const checkToken = require('../../middlewares/checkToken');
 const checkAdmin = require('../../middlewares/checkAdmin');
 const multer = require('multer');
@@ -22,11 +24,17 @@ const upload = multer({
     { name: 'mediaPoster', maxCount: 1 }
 ]);
 
-router.post('/upload/media', checkToken, checkAdmin, upload, adminController.uploadMedia);
-router.post('/download/torrent/start', checkToken, checkAdmin, adminController.startDownloadTorrent);
-router.post('/download/torrent/pause', checkToken, checkAdmin, adminController.pauseDownloadTorrent);
-router.post('/download/torrent/resume', checkToken, checkAdmin, adminController.resumeDownloadTorrent);
-router.post('/download/torrent/stop', checkToken, checkAdmin, adminController.stopDownloadTorrent);
-router.get('/download/torrent/all/status', checkToken, checkAdmin, adminController.getAllTorrentStatus);
+/*User */
+router.get('/data/user/fetch/all', checkToken, checkAdmin, userController.getAllUser);
+
+/*Media */
+router.post('/upload/media', checkToken, checkAdmin, upload, mediaController.uploadMedia);
+
+/*Torrent*/
+router.post('/download/torrent/start', checkToken, checkAdmin, torrentController.startDownloadTorrent);
+router.post('/download/torrent/pause', checkToken, checkAdmin, torrentController.pauseDownloadTorrent);
+router.post('/download/torrent/resume', checkToken, checkAdmin, torrentController.resumeDownloadTorrent);
+router.post('/download/torrent/stop', checkToken, checkAdmin, torrentController.stopDownloadTorrent);
+router.get('/download/torrent/all/status', checkToken, checkAdmin, torrentController.getAllTorrentStatus);
 
 module.exports = router;

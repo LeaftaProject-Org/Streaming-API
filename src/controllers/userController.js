@@ -2,28 +2,13 @@ const UserModel = require("../models/user");
 const jwt = require("jsonwebtoken");
 
 
+
 /**
- * @api {get} /user/data/fetch Get User Data
- * @apiName GetUserData
- * @apiGroup User
+ * Retrieves user data from the server based on the provided request.
  *
- * @apiHeader {String} Authorization JWT Token
- *
- * @apiSuccess {Object} user User data
- * @apiSuccess {String} user._id User ID
- * @apiSuccess {String} user.username User username
- * @apiSuccess {String} user.email User email
- * @apiSuccess {Date} user.createdAt Timestamp
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     {
- *       "_id": "5db0296555a9d30017f549b6",
- *       "username": "Psych",
- *       "email": "psych.killer@gmail.com",
- *       "createdAt": "2019-11-03T22:02:36.939Z",
- *     }
- *
+ * @param {Object} req - The request object containing the authorization token.
+ * @param {Object} res - The response object used to send the user data.
+ * @return {Promise<void>} - A promise that resolves when the user data is sent.
  */
 exports.getUserData = async (req, res) => {
     const token = req.headers['authorization'].split(' ')[1];
