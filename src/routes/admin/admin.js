@@ -29,14 +29,18 @@ router.get('/data/user/fetch/all', checkToken, checkAdmin, userController.getAll
 router.get  ('/data/user/fetch', checkToken, checkAdmin, userController.getUser);
 router.post('/data/user/update', checkToken, checkAdmin, userController.editUser);
 
-/*Media */
-router.post('/upload/media', checkToken, checkAdmin, upload, mediaController.uploadMedia);
+/*Media */  
+router.post('/media/upload', checkToken, checkAdmin, upload, mediaController.uploadMedia);
+router.post('/media/delete', checkToken, checkAdmin, mediaController.deleteMedia);
+router.post('/media/edit', checkToken, checkAdmin, mediaController.editMedia);
+router.get('/media/fetch/all', checkToken, checkAdmin, mediaController.getAllMedia);
+router.get('/media/fetch', checkToken, checkAdmin, mediaController.getMedia);
 
 /*Torrent*/
-router.post('/download/torrent/start', checkToken, checkAdmin, torrentController.startDownloadTorrent);
-router.post('/download/torrent/pause', checkToken, checkAdmin, torrentController.pauseDownloadTorrent);
-router.post('/download/torrent/resume', checkToken, checkAdmin, torrentController.resumeDownloadTorrent);
-router.post('/download/torrent/stop', checkToken, checkAdmin, torrentController.stopDownloadTorrent);
-router.get('/download/torrent/all/status', checkToken, checkAdmin, torrentController.getAllTorrentStatus);
+router.post('/torrent/download/start', checkToken, checkAdmin, torrentController.startDownloadTorrent);
+router.post('/torrent/download/pause', checkToken, checkAdmin, torrentController.pauseDownloadTorrent);
+router.post('/torrent/download/resume', checkToken, checkAdmin, torrentController.resumeDownloadTorrent);
+router.post('/torrent/download/stop', checkToken, checkAdmin, torrentController.stopDownloadTorrent);
+router.get('/torrent/download/all/status', checkToken, checkAdmin, torrentController.getAllTorrentStatus);
 
 module.exports = router;

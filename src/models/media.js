@@ -22,11 +22,6 @@ const MediaSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
-    watched: {
-        type: Boolean,
-        required: true,
-        default: false,
-    },
     pathTorrent: {
         type: String,
         required: false,
