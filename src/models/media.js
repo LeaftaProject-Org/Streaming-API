@@ -7,7 +7,7 @@ const MediaSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['MOVIE', 'TV SHOW', 'ANIME', 'SERIES'],
+        enum: ['MOVIE', 'TV SHOW', 'ANIME', 'SERIES', 'DOCUMENTARY'],
     },
     category: {
         type: String,
